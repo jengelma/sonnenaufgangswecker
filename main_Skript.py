@@ -57,6 +57,8 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
         if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (weckzeit_glob.tm_min == uhrzeit_loc.tm_min):
             #print("Vergleich passt")
             wecker_running_flag = True
+        else:
+            wecker_running_flag = False
             
         time.sleep(1)
         
@@ -120,12 +122,9 @@ def WeckzeitEingabe():
     time.sleep(2)
     
     while gueltigeEingabe == False:
-        stunden = StundenAbfrage()  
         print("Geben Sie die gewünschte Weckzeit im vorgegebenen Format ein.")
-        try:
-            minuten=int(input('Minuten (mm): '))
-        except ValueError:
-            print("Keine gültige Eingabe")
+        stunden = StundenAbfrage()
+        minuten = MinutenAbfrage()
             
         weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
 
@@ -134,6 +133,18 @@ def StundenAbfrage():
     gueltigeEingabe = False
     try:
         stunden=int(input('Stunden (hh): '))
+    except ValueError:
+        print("Keine gültige Eingabe")
+        gueltigeEingabe = False
+        return 0
+    gueltigeEingabe = True
+    return stunden
+
+def MinutenAbfrage():
+    global gueltigeEingabe
+    gueltigeEingabe = False
+    try:
+        stunden=int(input('Minuten (mm): '))
     except ValueError:
         print("Keine gültige Eingabe")
         gueltigeEingabe = False

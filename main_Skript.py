@@ -14,7 +14,7 @@ weckzeit_glob = time.strptime("16:17", "%H:%M")
 # Zeigt an ob die Stunde/Minuten-Eingabe korrekt war
 gueltigeEingabe = False
 
-# Diese Variablen und Arrays werden benötigt um die Uhrzeit auf der 7-Segmentanzeige korrekt anzuzeigen
+# Diese Variablen und Arrays werden benoetigt um die Uhrzeit auf der 7-Segmentanzeige korrekt anzuzeigen
 # GPIO ports for the 7seg pins
 # original
 #segments =  (11,4,23,8,7,10,18,25)
@@ -62,6 +62,7 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
             
         time.sleep(1)
         
+# Gibt die aktuelle Uhrzeit immer in der Queue an 
 def AndereFunkt(threadname, queuename):
     uhrzeit_glob = time.struct_time
     while True:
@@ -118,46 +119,77 @@ def LED_Test():
         
 def WeckzeitEingabe():
     global weckzeit_glob
-    global gueltigeEingabe
-    time.sleep(2)
+    gueltigeStunden = False
+    gueltigeMinuten = False
+    time.sleep(1)
+    minuten = 0
+    stunden = 0
     
-    while gueltigeEingabe == False:
-        print("Geben Sie die gewünschte Weckzeit im vorgegebenen Format ein.")
-        stunden = StundenAbfrage()
-        minuten = MinutenAbfrage()
+    weckzeitAbfragen = True
+    
+    while True:
+        
+        if weckzeitAbfragen == True:
+            print("Geben Sie die gewuenschte Weckzeit im vorgegebenen Format ein.")
+            stunden = StundenAbfrage()
+            if stunden == ValueError:
+                gueltigeStunden = False
+            else:
+                minuten = MinutenAbfrage()
+                if minuten == ValueError:
+                    gueltigeMinuten = False
+                else:
+                    gueltigeMinuten = True
+            if gueltigeStunden == True and gueltigeMinuten == True:    
+                weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")        
+        
+        try:
+            weckzeitAbfragen = neueZeitAbfrage()
+        except ValueError:
+            print("Keine gueltige Eingabe")
             
-        weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
+        
+
+def neueZeitAbfrage():
+    print("Weckzeit jetzt aendern?")
+    neueZeit = input("J/n: ")
+    if neueZeit == "J":
+        return True
+    elif neueZeit == "n":
+        return False
+    else:
+        return ValueError
 
 def StundenAbfrage():
-    global gueltigeEingabe
-    gueltigeEingabe = False
     try:
         stunden=int(input('Stunden (hh): '))
+        if stunden > 23 or stunden < 0:
+            print("Falsche Eingabe!")
+            return ValueError
     except ValueError:
-        print("Keine gültige Eingabe")
-        gueltigeEingabe = False
+        print("Keine gueltige Eingabe")
         return 0
-    gueltigeEingabe = True
+    #gueltigeEingabe = True
     return stunden
 
 def MinutenAbfrage():
     global gueltigeEingabe
-    gueltigeEingabe = False
     try:
-        stunden=int(input('Minuten (mm): '))
+        minuten=int(input('Minuten (mm): '))
+        if minuten > 59 or minuten < 0:
+            return ValueError
     except ValueError:
-        print("Keine gültige Eingabe")
-        gueltigeEingabe = False
+        print("Keine gueltige Eingabe")
         return 0
-    gueltigeEingabe = True
-    return stunden
+    #gueltigeEingabe = True
+    return minuten
 
 def initGPIOPins():
     GPIO.setmode(GPIO.BOARD)
-    # Initialisierung des GPIO-Pins für die LED
+    # Initialisierung des GPIO-Pins fuer die LED
     GPIO.setup(37, GPIO.OUT)
     
-    #Initialisierung der GPIO-Pins für die 7-Segmentanzeige
+    #Initialisierung der GPIO-Pins fuer die 7-Segmentanzeige
     for segment in segments:
         GPIO.setup(segment, GPIO.OUT)
         GPIO.output(segment, 0)
@@ -176,7 +208,7 @@ def run7Segment():
                 # Die sieben Segmente werden nacheinander abgearbeitet
                 for loop in range(0,7):
                     # segments[loop] gibt den GPIO-Pin wieder welcher verwendet wird
-                    # num[s[digit]][loop] gibt passend zur Zeit an ob das ausgewählt Segment beleuchtet werden muss
+                    # num[s[digit]][loop] gibt passend zur Zeit an ob das ausgewaehlt Segment beleuchtet werden muss
                     # mit 0 = false und 1 = true
                     
                     #if num[s[digit]][loop] == 1:

@@ -135,13 +135,15 @@ def WeckzeitEingabe():
             if stunden == ValueError:
                 gueltigeStunden = False
             else:
+                gueltigeStunden = True
                 minuten = MinutenAbfrage()
                 if minuten == ValueError:
                     gueltigeMinuten = False
                 else:
                     gueltigeMinuten = True
             if gueltigeStunden == True and gueltigeMinuten == True:    
-                weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")        
+                weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
+                print("Gueltige Weckzeit: ", weckzeit_glob)
         
         try:
             weckzeitAbfragen = neueZeitAbfrage()

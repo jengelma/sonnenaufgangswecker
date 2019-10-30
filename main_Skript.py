@@ -11,6 +11,8 @@ import RPi.GPIO as GPIO
 wecker_end_flag = False
 wecker_running_flag = False
 weckzeit_glob = time.strptime("16:17", "%H:%M")
+led_running_flag = False
+last_input_var = True
 # Zeigt an ob die Stunde/Minuten-Eingabe korrekt war
 gueltigeEingabe = False
 
@@ -86,6 +88,7 @@ def FlagChecker():
 
 def LED_Test():
     global wecker_running_flag
+    global led_running_flag
     #GPIO.setup(35, GPIO.OUT)
     #GPIO.setup(33, GPIO.OUT)
 
@@ -98,7 +101,7 @@ def LED_Test():
     #ppp.start(0)
     while 1:
         try:
-            while wecker_running_flag:
+            while wecker_running_flag or led_running_flag:
                 for dc in range(0, 70, 5):
                     p.ChangeDutyCycle(dc)
                     #pp.ChangeDutyCycle(dc)
@@ -143,7 +146,6 @@ def WeckzeitEingabe():
                     gueltigeMinuten = True
             if gueltigeStunden == True and gueltigeMinuten == True:    
                 weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
-                print("Gueltige Weckzeit: ", weckzeit_glob)
         
         try:
             weckzeitAbfragen = neueZeitAbfrage()
@@ -165,7 +167,7 @@ def neueZeitAbfrage():
 def StundenAbfrage():
     try:
         stunden=int(input('Stunden (hh): '))
-        if stunden > 23 or stunden < 0:
+        if stunden > 23 or stunden < 0 and checker_int:
             print("Falsche Eingabe!")
             return ValueError
     except ValueError:
@@ -186,11 +188,21 @@ def MinutenAbfrage():
     #gueltigeEingabe = True
     return minuten
 
+# Callback fuer den Taster
+def button_callback(channel):
+    global wecker_running_flag
+    
+    if  wecker_running_flag == True:
+        wecker_running_flag = False
+    
+    
 def initGPIOPins():
     GPIO.setmode(GPIO.BOARD)
     # Initialisierung des GPIO-Pins fuer die LED
     GPIO.setup(37, GPIO.OUT)
-    
+    # Initialiasierung des GPIO-Pins fuer den Taster
+    GPIO.setup(35, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(35,GPIO.RISING,callback=button_callback)
     #Initialisierung der GPIO-Pins fuer die 7-Segmentanzeige
     for segment in segments:
         GPIO.setup(segment, GPIO.OUT)
@@ -247,12 +259,14 @@ def main():
     thread5 = Thread( target=WeckzeitEingabe)
     thread6 = Thread( target=run7Segment)
     
+    
     thread1.start()
     thread2.start()
     thread3.start()
     thread4.start()
     thread5.start()
     thread6.start()
+    
 
     thread1.join()
     thread2.join()
@@ -260,5 +274,8 @@ def main():
     thread4.join()
     thread5.join()
     thread6.join()
+    
+    
+    GPIO.cleanup()
     
 main()

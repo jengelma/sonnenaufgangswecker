@@ -4,6 +4,7 @@ from queue import Queue
 import time
 import pyglet
 import RPi.GPIO as GPIO
+#import function_file.Wecker as Funkt
 
 #Ein paar globale Variablen zum Vergleich ob der Wecker die richtige
 #Zeit schon erreicht hat
@@ -15,6 +16,8 @@ led_running_flag = False
 last_input_var = True
 # Zeigt an ob die Stunde/Minuten-Eingabe korrekt war
 gueltigeEingabe = False
+# Ein Flag, um zu signalisieren, dass es jetzt vorbei ist
+wecker_ausschalten_flag = True
 
 # Diese Variablen und Arrays werden benoetigt um die Uhrzeit auf der 7-Segmentanzeige korrekt anzuzeigen
 # GPIO ports for the 7seg pins
@@ -45,33 +48,29 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
     global wecker_end_flag
     global wecker_running_flag
     global weckzeit_glob
-    
+
     weckzeit_glob = weckzeit_loc
-    
+
     uhrzeit_loc = time.struct_time
     while True:
         uhrzeit_loc = queuename.get()
-        #print(time.asctime()[11:19])
-        
-        #if wecker_end_flag == False:
-        #    wecker_running_flag = True
-        
+
         if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (weckzeit_glob.tm_min == uhrzeit_loc.tm_min):
             #print("Vergleich passt")
             wecker_running_flag = True
         else:
             wecker_running_flag = False
-            
+
         time.sleep(1)
-        
-# Gibt die aktuelle Uhrzeit immer in der Queue an 
+
+# Gibt die aktuelle Uhrzeit immer in der Queue an
 def AndereFunkt(threadname, queuename):
     uhrzeit_glob = time.struct_time
     while True:
         queuename.put(uhrzeit_glob)
         time.sleep(1)
         uhrzeit_glob = time.localtime()
-        
+
 def FlagChecker():
     global wecker_running_flag
     global wecker_end_flag
@@ -119,7 +118,7 @@ def LED_Test():
             #ppp.stop()
             GPIO.cleanup()
         time.sleep(1)
-        
+
 def WeckzeitEingabe():
     global weckzeit_glob
     gueltigeStunden = False
@@ -127,11 +126,11 @@ def WeckzeitEingabe():
     time.sleep(1)
     minuten = 0
     stunden = 0
-    
+
     weckzeitAbfragen = True
-    
+
     while True:
-        
+
         if weckzeitAbfragen == True:
             print("Geben Sie die gewuenschte Weckzeit im vorgegebenen Format ein.")
             stunden = StundenAbfrage()
@@ -144,19 +143,19 @@ def WeckzeitEingabe():
                     gueltigeMinuten = False
                 else:
                     gueltigeMinuten = True
-            if gueltigeStunden == True and gueltigeMinuten == True:    
+            if gueltigeStunden == True and gueltigeMinuten == True:
                 weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
-        
+
         try:
             weckzeitAbfragen = neueZeitAbfrage()
         except ValueError:
             print("Keine gueltige Eingabe")
-            
-        
+
+
 
 def neueZeitAbfrage():
     print("Weckzeit jetzt aendern?")
-    neueZeit = input("J/n: ")
+    neueZeit = input("J: ")
     if neueZeit == "J":
         return True
     elif neueZeit == "n":
@@ -191,11 +190,11 @@ def MinutenAbfrage():
 # Callback fuer den Taster
 def button_callback(channel):
     global wecker_running_flag
-    
+
     if  wecker_running_flag == True:
         wecker_running_flag = False
-    
-    
+
+
 def initGPIOPins():
     GPIO.setmode(GPIO.BOARD)
     # Initialisierung des GPIO-Pins fuer die LED
@@ -207,11 +206,11 @@ def initGPIOPins():
     for segment in segments:
         GPIO.setup(segment, GPIO.OUT)
         GPIO.output(segment, 0)
-        
+
     for digit in digits:
         GPIO.setup(digit, GPIO.OUT)
         GPIO.output(digit, 1)
-        
+
 def run7Segment():
     try:
         while True:
@@ -224,7 +223,7 @@ def run7Segment():
                     # segments[loop] gibt den GPIO-Pin wieder welcher verwendet wird
                     # num[s[digit]][loop] gibt passend zur Zeit an ob das ausgewaehlt Segment beleuchtet werden muss
                     # mit 0 = false und 1 = true
-                    
+
                     #if num[s[digit]][loop] == 1:
                     #    GPIO.PWM(segments[loop], 70)
                     #else:
@@ -241,13 +240,13 @@ def run7Segment():
                         GPIO.output(7, 0)
                     elif digit != 4:
                         GPIO.output(segments[loop], num[s[digit]][loop])
-                
+
                 GPIO.output(digits[digit], 0)
                 time.sleep(0.0001)
                 GPIO.output(digits[digit], 1)
     finally:
         GPIO.cleanup()
-    
+
 
 def main():
     queue = Queue()
@@ -258,15 +257,15 @@ def main():
     thread4 = Thread( target=LED_Test)
     thread5 = Thread( target=WeckzeitEingabe)
     thread6 = Thread( target=run7Segment)
-    
-    
+
+
     thread1.start()
     thread2.start()
     thread3.start()
     thread4.start()
     thread5.start()
     thread6.start()
-    
+
 
     thread1.join()
     thread2.join()
@@ -274,8 +273,8 @@ def main():
     thread4.join()
     thread5.join()
     thread6.join()
-    
-    
+
+
     GPIO.cleanup()
-    
+
 main()

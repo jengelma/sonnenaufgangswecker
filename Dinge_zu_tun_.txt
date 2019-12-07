@@ -1,0 +1,25 @@
+# Notiz was noch gemacht werden muss Teamprojekt
+
+- Taster als Funktion implementieren
+-- Taste 1: Wecker ein und Wecker aus
+-- Taste 2: Stunden hochzaehlen wenn in Weckzeiteinstellmodus
+-- Taste 3: Minuten hochzaehlen wenn in Minuteneinstellmodus
+
+- Algorithmus zum Steuern der LED verfeinern
+-- Momentan pulsiert sie nur
+--> Ziel ist alle Farben von tiefen rot/orange bis weiß hochzuzaehlen, mit
+    mit ansteigender Helligkeit
+
+- Auf der 7-Segmentanzeige die momentane Weckzeit anzeigen lassen und einstellen
+-- Taste 1 sollte während der Wecker nicht klingelt zwischen Modus Uhrzeit und
+   Weckzeit wechseln --> Weckzeit anzeigen lassen und gleichzeitig verändern
+   können
+-- Ein nicht blinkender Doppelpunkt könnte Weckzeit signalisieren (Uhrzeit wird
+   immer mit blinkendem Doppelpunkt angezeigt)
+
+- Die LED sollte weiterleuchten, auch wenn die Weckzeit überschritten ist,
+  entweder bis auf den Knopf gedrueckt wird oder bis zu einem Timer
+
+- Man sollte mit dem initialisierenden Skript auch einstellen können wie lange
+  der Leuchtprozess dauern sollte, mit einem Defaultwert der einer
+  realistischen Zeit entspricht

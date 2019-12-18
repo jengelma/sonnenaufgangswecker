@@ -23,3 +23,5 @@
 - Man sollte mit dem initialisierenden Skript auch einstellen können wie lange
   der Leuchtprozess dauern sollte, mit einem Defaultwert der einer
   realistischen Zeit entspricht
+
+--> Die 30 Minuten vorher LED anmachen Funktion geht noch nicht

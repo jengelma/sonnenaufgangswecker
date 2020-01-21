@@ -40,7 +40,7 @@ def StundenAbfrage():
             return ValueError
     except ValueError:
         print("Keine gueltige Eingabe")
-        return 0
+        return ValueError
     #gueltigeEingabe = True
     return stunden
 
@@ -48,8 +48,9 @@ def MinutenAbfrage():
     try:
         minuten=int(input('Minuten (mm): '))
         if minuten > 59 or minuten < 0:
+            print("Falsche Eingabe!")
             return ValueError
     except ValueError:
         print("Keine gueltige Eingabe")
-        return 0
+        return ValueError
     return minuten

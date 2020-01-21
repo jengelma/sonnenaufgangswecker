@@ -5,6 +5,7 @@ from threading import Thread
 from queue import Queue
 import time
 import pyglet
+import pygame
 import RPi.GPIO as GPIO
 from funktionensammlung import *
 
@@ -12,19 +13,20 @@ from funktionensammlung import *
 ### ablauf
 # Ein paar globale Variablen zum Vergleich ob der Wecker die richtige
 # Zeit schon erreicht hat
-wecker_end_flag = False
 wecker_running_flag = False
-weckzeit_glob = time.strptime("16:17", "%H:%M")
-weckzeit_led = time.strptime("15:58", "%H:%M")
+# Die global zu verwendende Weckzeit sowie die Weckzeit fuer die LED
+weckzeit_glob = time.strptime("00:00", "%H:%M")
+weckzeit_led = time.strptime("00:00", "%H:%M")
 # Gibt an ob die LED leuchten soll oder nicht
 led_running_flag = False
-last_input_var = True
 # Entscheidet ob der Wecker ertoenen soll oder nicht. Also gesamte Weckerfunktionalitaet
-wecker_modus = False
+wecker_modus = True
 # Zeigt an ob die Stunde/Minuten-Eingabe korrekt war
 gueltigeEingabe = False
 # Ein Flag, um zu signalisieren, dass es jetzt vorbei ist
 wecker_ausschalten_flag = True
+
+neue_weckzeit_led_flag = False
 
 # Diese Variablen und Arrays werden benoetigt um die Uhrzeit auf der
 # 7-Segmentanzeige korrekt anzuzeigen
@@ -55,15 +57,18 @@ num = {' ':(0,0,0,0,0,0,0),
 ### Die Thread-Funktionen
 # Generelle Weckerfunktionalitaet --> Ueberprueft Uhrzeit und Weckzeit
 def WeckerFunkt(threadname, queuename, weckzeit_loc):
-    global wecker_end_flag
-    global wecker_running_flag
-    global weckzeit_glob
-    global led_running_flag
     # Dauer der "Timer"
     FUENF_MINUTEN = 360
     DREISSIG_PLUS_FUENF_MINUTEN = 1800 + FUENF_MINUTEN
+    
+    global wecker_running_flag
+    global weckzeit_glob
+    global led_running_flag
+    global wecker_modus
 
     wecker_once_on = False
+    led_once_on = False
+
     zaehler_timer_gone = 0
     zaehler_timer_led = 0
 
@@ -75,48 +80,75 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
     uhrzeit_loc = time.struct_time
     while True:
         uhrzeit_loc = queuename.get()
+        if wecker_modus == True:
 
-        # Wecker loest aus wenn Weckzeit = Uhrzeit
-        if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (
-        weckzeit_glob.tm_min == uhrzeit_loc.tm_min) and (wecker_modus == True):
-            if wecker_once_on == False:
-                wecker_running_flag = True
-                wecker_once_on = True
+            # Wecker loest aus wenn Weckzeit = Uhrzeit
+            if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (
+            weckzeit_glob.tm_min == uhrzeit_loc.tm_min):
+                if wecker_once_on == False:
+                    wecker_running_flag = True
+                    wecker_once_on = True
+                # Regelung um den Wecker nicht stundenlang laufen zu lassen
+                elif timer_gone == True:
+                    wecker_running_flag = False
+            else :
+                wecker_once_on = False
+                
+            # Anpassung fuer die Vergleichbarkeit der Uhrzeiten
+            if weckzeit_led.tm_hour == uhrzeit_loc.tm_hour:
+                if (weckzeit_led.tm_min <= uhrzeit_loc.tm_min):
+                    if led_once_on == False:
+                        led_running_flag = True
+                        led_once_on = True
+                    # Regelung um den Wecker nicht stundenlang laufen zu lassen
+                    elif timer_gone == True:
+                        wecker_running_flag = False
+                        led_once_on = False
 
-            elif timer_gone == True:
-                wecker_running_flag = False
+                    if timer_gone_led == True:
+                        led_running_flag = False
+            # Prueft ob wirklich 30 Minuten zwischen LED Wecker und Uhrzeit sind
+            elif weckzeit_led.tm_hour == (uhrzeit_loc.tm_hour + 1):
+                if((weckzeit_led.tm_min -60 + uhrzeit_loc.tm_min) >= 0):
+                    if led_once_on == False:
+                        led_running_flag = True
+                        led_once_on = True
+                    # Regelung um den Wecker nicht stundenlang laufen zu lassen
+                    if timer_gone_led == True:
+                        led_running_flag = False
+                        led_once_on = False
+            else :
+                led_once_on = False
 
-        if (weckzeit_led.tm_hour == uhrzeit_loc.tm_hour) and (
-        weckzeit_led.tm_min <= uhrzeit_loc.tm_min) and (wecker_modus == True):
-            if wecker_once_on == False:
-                led_running_flag = True
-                wecker_once_on = True
-
-            elif timer_gone_led == True:
-                led_running_flag = False
-
-        else:
-            wecker_once_on = False
-            #wecker_running_flag = False
-
-        # Wenn der Wecker 5 Minuten gelaufen ist, stoppt der Wecker
-        if wecker_running_flag == True:
-            zaehler_timer_gone = zaehler_timer_gone + 1
-            if zaehler_timer_gone == FUENF_MINUTEN:
-                wecker_running_flag = False
+            # Wenn der Wecker 5 Minuten gelaufen ist, stoppt der Wecker
+            if wecker_running_flag == True:
+                zaehler_timer_gone = zaehler_timer_gone + 1
+                if zaehler_timer_gone == FUENF_MINUTEN:
+                    wecker_running_flag = False
+                    zaehler_timer_gone = 0
+            else :
                 zaehler_timer_gone = 0
+                timer_gone = False
 
-        if led_running_flag == True:
-            zaehler_timer_led = zaehler_timer_led + 1
-            if zaehler_timer_led == DREISSIG_PLUS_FUENF_MINUTEN:
-                wecker_running_flag = False
+
+            # Wenn die LED 35 Minuten lief, stoppt die LED
+            if led_running_flag == True:
+                zaehler_timer_led = zaehler_timer_led + 1
+                if zaehler_timer_led == DREISSIG_PLUS_FUENF_MINUTEN:
+                    wecker_running_flag = False
+                    zaehler_timer_led = 0
+            else:
                 zaehler_timer_led = 0
+                timer_gone_led = False
+        else:
+            led_running_flag = False
+            wecker_running_flag = False
 
         time.sleep(1)
 
 # Gibt die aktuelle Uhrzeit immer in der Queue an
-def AndereFunkt(threadname, queuename):
-    uhrzeit_glob = time.struct_time
+def zeitGebeFunktion(threadname, queuename):
+    uhrzeit_glob = time.localtime()
     while True:
         queuename.put(uhrzeit_glob)
         time.sleep(1)
@@ -125,84 +157,87 @@ def AndereFunkt(threadname, queuename):
 # Ueberprueft ob der Wecker Geraeusche machen sollte
 def FlagCheckerSound():
     global wecker_running_flag
-    global wecker_end_flag
-    music = pyglet.resource.media('service-bell_daniel_simion.wav', streaming=False)
+    # Es koennen auch mehrere Titel hier eingefuegt werden, --> Auswahl!
+    pygame.mixer.music.load("cartoon-birds-2_daniel-simion.wav")
+    #music = pyglet.resource.media('cartoon-birds-2_daniel-simion.wav', streaming=False)
     while 1:
         if not wecker_running_flag:
             time.sleep(1)
         while wecker_running_flag:
             # Wenn die Musik schon spielt, hat die play()-Funktion keine Auswirkungen
-            music.play()
+            if pygame.mixer.music.get_busy() != True:
+                pygame.mixer.music.play()
             time.sleep(1)
 
-        
+
 # Funktion die die LED ansteuert wenn die Weckzeit = Uhrzeit
-def LED_Test():
+def LED_Funktion():
     global wecker_running_flag
     global led_running_flag
     global weckzeit_glob
     global weckzeit_led
-    
+    global neue_weckzeit_led_flag
+
     stunden_versatz, minuten_versatz =  weckzeitLEDBerechnen(weckzeit_glob)
 
     weckzeit_led = time.strptime(str(stunden_versatz)+" "+str(minuten_versatz), "%H %M")
-    print(weckzeit_led)
     # Die Uhrzeit fuer den Wecker muss 30 Minuten vor dem eigentlichen Wecker anfangen.
     # Dadurch kann man die LED bis zum klingeln des Weckers anschalten
-
-
-    # Die vorher fuer die LED-verwendeten GPIOs werden nun für die Taster verwendet
-    #GPIO.setup(35, GPIO.OUT)
-    #GPIO.setup(33, GPIO.OUT)
 
     p = GPIO.PWM(37, 1000)
     #pp = GPIO.PWM(35, 100)
     #ppp = GPIO.PWM(33, 100)
-    # frequency=100Hz
+
     p.start(0)
     #pp.start(0)
     #ppp.start(0)
     while 1:
         try:
-            stunden_versatz, minuten_versatz =  weckzeitLEDBerechnen(weckzeit_glob)
-            weckzeit_led = time.strptime(str(stunden_versatz)+" "+str(minuten_versatz), "%H %M")
+            if neue_weckzeit_led_flag == True:
+                stunden_versatz, minuten_versatz =  weckzeitLEDBerechnen(weckzeit_glob)
+                weckzeit_led = time.strptime(str(stunden_versatz)+" "+str(minuten_versatz), "%H %M")
+                neue_weckzeit_led_flag = False
             #print(str(stunden_versatz)+":"+str(minuten_versatz))
+            dc_before = 0
 
-            while wecker_running_flag or led_running_flag:
+            while led_running_flag:
                 dc_differenz = time.localtime()
                 if dc_differenz.tm_min < weckzeit_led.tm_min:
                     dc = dc_differenz.tm_min + 60 - weckzeit_led.tm_min
                 else :
                     dc = dc_differenz.tm_min - weckzeit_led.tm_min
 
-                print("Wert von dc: "+str(dc))
-                #for dc in range(1, 101, 1):
-                p.ChangeDutyCycle(dc)
-                if wecker_running_flag or (led_running_flag == False):
+                # Wenn sich der Wert für die PWM nicht veraendert hat, nichts aendern
+                if dc != dc_before:
+                    p.ChangeDutyCycle(dc)
+
+                dc_before = dc
+
+                if (led_running_flag == False):
                     p.ChangeDutyCycle(0)
                     break
                 #pp.ChangeDutyCycle(dc)
                 #ppp.ChangeDutyCycle(dc)
                 time.sleep(0.01)
-                #for dc in range(100, 1, -1) or (led_running_flag == False):
                 # p.ChangeDutyCycle(dc)
-                # if wecker_running_flag:
-                #     p.ChangeDutyCycle(0)
-                #     break
                 # #pp.ChangeDutyCycle(dc)
                 # #ppp.ChangeDutyCycle(dc)
                 time.sleep(1)
+
         except KeyboardInterrupt:
-            pass
             p.stop()
             #pp.stop()
             #ppp.stop()
             GPIO.cleanup()
+            pass
         time.sleep(1)
 
 def WeckzeitEingabe():
     global weckzeit_glob
     global wecker_modus
+    global neue_weckzeit_led_flag
+    global led_running_flag
+
     gueltigeStunden = False
     gueltigeMinuten = False
     time.sleep(1)
@@ -211,6 +246,7 @@ def WeckzeitEingabe():
 
     weckzeitAbfragen = True
 
+    # Wenn eine falsche Uhrzeit eingegeben wird, dann ist der Wecker ausgeschaltet!
     while True:
         time.sleep(1)
         if weckzeitAbfragen == True:
@@ -227,16 +263,18 @@ def WeckzeitEingabe():
                     wecker_modus = False
                 else:
                     gueltigeMinuten = True
-            if gueltigeStunden == True and gueltigeMinuten == True:
+                    
+            if (gueltigeStunden == True) and (gueltigeMinuten == True):
                 weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
                 wecker_modus = True
-
+                neue_weckzeit_led_flag = True
         try:
             weckzeitAbfragen = neueZeitAbfrage()
         except ValueError:
             print("Keine gueltige Eingabe")
 
 def run7Segment():
+    global wecker_modus
     try:
         while True:
             n = time.ctime()[11:13]+time.ctime()[14:16]
@@ -251,10 +289,6 @@ def run7Segment():
                     # ausgewaehlt Segment beleuchtet werden muss
                     # mit 0 = false und 1 = true
 
-                    #if num[s[digit]][loop] == 1:
-                    #    GPIO.PWM(segments[loop], 70)
-                    #else:
-                    #    GPIO.output(segments[loop], num[s[digit]][loop])
                     # if-Abfrage zur Steuerung der Sekundenanzeige
                     if (int(time.ctime()[18:19])%2 == 0) and (digit == 4) and wecker_modus == True:
                         GPIO.output(16,0)
@@ -271,6 +305,10 @@ def run7Segment():
                 GPIO.output(digits[digit], 0)
                 time.sleep(0.0001)
                 GPIO.output(digits[digit], 1)
+    except KeyboardInterrupt:
+        pass
+        GPIO.cleanup()
+
     finally:
         GPIO.cleanup()
 
@@ -278,19 +316,26 @@ def run7Segment():
 # Callback fuer den Taster zum Wecker ausschalten
 def button_callback_wecker(channel):
     global wecker_running_flag
+    global led_running_flag
+
+    led_running_flag = not led_running_flag
+    print("led_running negiert")
 
     if  wecker_running_flag == True:
         wecker_running_flag = False
+        print("wecker_running ausgeschaltet")
 
 # Callback fuer den Taster Licht anschalten
 def button_callback_licht(channel):
     global led_running_flag
     led_running_flag = not led_running_flag
+    print("led_running negiert")
 
 # Callback fuer den Taster Wecker-Modus einstellen
 def button_callback_modus(channel):
     global wecker_modus
     wecker_modus = not wecker_modus
+    print("wecker_modus negiert")
 
 ### Initialisierungsfunktionen
 #Initialisation of GPIO Pins Raspi
@@ -299,12 +344,13 @@ def initGPIOPins():
     # Initialisierung des GPIO-Pins fuer die LED
     GPIO.setup(37, GPIO.OUT)
     # Initialiasierung der GPIO-Pins fuer die Taster
+    # Bouncetime braucht man um mehrmaliges ausloesen zu verhindern, evtl. risingedge?
     GPIO.setup(35, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(35,GPIO.RISING,callback=button_callback_wecker)
+    GPIO.add_event_detect(35,GPIO.RISING,callback=button_callback_wecker, bouncetime=300)
     GPIO.setup(33, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(33,GPIO.RISING,callback=button_callback_licht)
+    GPIO.add_event_detect(33,GPIO.RISING,callback=button_callback_licht, bouncetime=300)
     GPIO.setup(31, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(31,GPIO.RISING,callback=button_callback_modus)
+    GPIO.add_event_detect(31,GPIO.RISING,callback=button_callback_modus, bouncetime=300)
     #Initialisierung der GPIO-Pins fuer die 7-Segmentanzeige
     for segment in segments:
         GPIO.setup(segment, GPIO.OUT)
@@ -315,12 +361,13 @@ def initGPIOPins():
         GPIO.output(digit, 1)
 
 def main():
+    pygame.mixer.init()
     queue = Queue()
     initGPIOPins()
     thread1 = Thread( target=WeckerFunkt, args=("Thread-1", queue, weckzeit_glob))
-    thread2 = Thread( target=AndereFunkt, args=("Thread-2", queue))
+    thread2 = Thread( target=zeitGebeFunktion, args=("Thread-2", queue))
     thread3 = Thread( target=FlagCheckerSound)
-    thread4 = Thread( target=LED_Test)
+    thread4 = Thread( target=LED_Funktion)
     thread5 = Thread( target=WeckzeitEingabe)
     thread6 = Thread( target=run7Segment)
 

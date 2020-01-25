@@ -25,6 +25,9 @@ wecker_modus = True
 gueltigeEingabe = False
 # Ein Flag, um zu signalisieren, dass es jetzt vorbei ist
 wecker_ausschalten_flag = True
+# Flag zum signalisieren des aktuellen 7-Segment Modus
+uhrzeit_modus = True
+# Flag zum 
 
 neue_weckzeit_led_flag = False
 
@@ -275,67 +278,114 @@ def WeckzeitEingabe():
 
 def run7Segment():
     global wecker_modus
+    global uhrzeit_modus
+    global weckzeit_glob
     try:
         while True:
-            n = time.ctime()[11:13]+time.ctime()[14:16]
-            s = str(n).rjust(4)
-            # Alle vier Stellen der Zeitangabe werden abgearbeitet
-            for digit in range(5):
-                # Die sieben Segmente werden nacheinander abgearbeitet
-                for loop in range(0,7):
-                    # segments[loop] gibt den GPIO-Pin wieder welcher verwendet
-                    # wird
-                    # num[s[digit]][loop] gibt passend zur Zeit an ob das
-                    # ausgewaehlt Segment beleuchtet werden muss
-                    # mit 0 = false und 1 = true
+            if uhrzeit_modus == True:
+                n = time.ctime()[11:13]+time.ctime()[14:16]
+                s = str(n).rjust(4)
+                # Alle vier Stellen der Zeitangabe werden abgearbeitet
+                for digit in range(5):
+                    # Die sieben Segmente werden nacheinander abgearbeitet
+                    for loop in range(0,7):
+                        # segments[loop] gibt den GPIO-Pin wieder welcher verwendet
+                        # wird
+                        # num[s[digit]][loop] gibt passend zur Zeit an ob das
+                        # ausgewaehlt Segment beleuchtet werden muss
+                        # mit 0 = false und 1 = true
 
-                    # if-Abfrage zur Steuerung der Sekundenanzeige
-                    if (int(time.ctime()[18:19])%2 == 0) and (digit == 4) and wecker_modus == True:
-                        GPIO.output(16,0)
-                        GPIO.output(23,1)
-                        GPIO.output(7,1)
-                        #GPIO.output(16, 0)
-                    elif (int(time.ctime()[18:19])%2 == 1) and (digit == 4):
-                        GPIO.output(16, 0)
-                        GPIO.output(23, 0)
-                        GPIO.output(7, 0)
-                    elif digit != 4:
+                        # if-Abfrage zur Steuerung der Sekundenanzeige
+                        if (int(time.ctime()[18:19])%2 == 0) and (digit == 4) and (
+                            wecker_modus == True):
+                            GPIO.output(16,0)
+                            GPIO.output(23,1)
+                            GPIO.output(7,1)
+                            #GPIO.output(16, 0)
+                        elif (int(time.ctime()[18:19])%2 == 1) and (digit == 4):
+                            GPIO.output(16, 0)
+                            GPIO.output(23, 0)
+                            GPIO.output(7, 0)
+                        elif digit != 4:
+                            GPIO.output(segments[loop], num[s[digit]][loop])
+
+                    GPIO.output(digits[digit], 0)
+                    time.sleep(0.0001)
+                    GPIO.output(digits[digit], 1)
+
+            elif uhrzeit_modus == False:
+                n = str(weckzeit_glob.tm_hour) + str(weckzeit_glob.tm_min)
+                s = str(n).rjust(4)
+                # Alle vier Stellen der Zeitangabe werden abgearbeitet
+                for digit in range(4):
+                    # Die sieben Segmente werden nacheinander abgearbeitet
+                    for loop in range(0,7):
                         GPIO.output(segments[loop], num[s[digit]][loop])
 
-                GPIO.output(digits[digit], 0)
-                time.sleep(0.0001)
-                GPIO.output(digits[digit], 1)
+                    GPIO.output(digits[digit], 0)
+                    time.sleep(0.0001)
+                    GPIO.output(digits[digit], 1)
+
     except KeyboardInterrupt:
-        pass
         GPIO.cleanup()
+        pass
 
     finally:
         GPIO.cleanup()
 
 ### Button Callbacks
-# Callback fuer den Taster zum Wecker ausschalten
-def button_callback_wecker(channel):
-    global wecker_running_flag
-    global led_running_flag
+# Taster 1, im Uhrzeitmodus --> Wecker ein/aus 
+#           im Weckzeitmodus --> Rueckkehr zur Uhrzeitanzeige
+def buttonCallbackTaster1(channel):
+    global uhrzeit_modus
+    if uhrzeit_modus == True:
+        weckerFunktionInvertieren()
+    elif uhrzeit_modus == False:
+        uhrzeitWeckzeitAufrufen()
 
-    led_running_flag = not led_running_flag
-    print("led_running negiert")
+# Taster 2, im Uhrzeitmodus --> Zur Weckzeitaenderung wechseln
+#           im Weckzeitmodus --> Stunden hochzaehlen
+def buttonCallbackTaster2(channel):
+    global uhrzeit_modus
+    if uhrzeit_modus == True:
+        uhrzeitWeckzeitAufrufen()
+    elif uhrzeit_modus == False:
+        weckzeitStundenHochzaehlen()
 
-    if  wecker_running_flag == True:
-        wecker_running_flag = False
-        print("wecker_running ausgeschaltet")
+# Taster 3, im Uhrzeitmodus --> Zur Weckzeitaenderung wechseln
+#           im Weckzeitmodus --> Minuten hochzaehlen
+def buttonCallbackTaster3(channel):
+    global uhrzeit_modus
+    if uhrzeit_modus == True:
+        uhrzeitWeckzeitAufrufen()
+    elif uhrzeit_modus == False:
+        weckzeitMinutenHochzaehlen()
 
-# Callback fuer den Taster Licht anschalten
-def button_callback_licht(channel):
-    global led_running_flag
-    led_running_flag = not led_running_flag
-    print("led_running negiert")
-
-# Callback fuer den Taster Wecker-Modus einstellen
-def button_callback_modus(channel):
+# Funktion zum Einschalten der Weckfunktion
+def weckerFunktionInvertieren():
     global wecker_modus
     wecker_modus = not wecker_modus
-    print("wecker_modus negiert")
+
+def uhrzeitWeckzeitAufrufen():
+    global uhrzeit_modus
+    uhrzeit_modus = not uhrzeit_modus
+
+def weckzeitStundenHochzaehlen():
+    global weckzeit_glob
+    global weckzeit_led
+    weckzeit_glob.tm_hour = weckzeit_glob.tm_hour + 1
+    if weckzeit_glob.tm_hour > 23:
+        weckzeit_glob.tm_hour = 0
+    weckzeitLEDBerechnen(weckzeit_glob)
+    
+
+def weckzeitMinutenHochzaehlen():
+    global weckzeit_glob
+    global weckzeit_led
+    weckzeit_glob.tm_min = weckzeit_glob.tm_min + 1
+    if weckzeit_glob.tm_min > 59:
+        weckzeit_glob.tm_min = 0
+    weckzeitLEDBerechnen(weckzeit_glob)
 
 ### Initialisierungsfunktionen
 #Initialisation of GPIO Pins Raspi
@@ -346,11 +396,11 @@ def initGPIOPins():
     # Initialiasierung der GPIO-Pins fuer die Taster
     # Bouncetime braucht man um mehrmaliges ausloesen zu verhindern, evtl. risingedge?
     GPIO.setup(35, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(35,GPIO.RISING,callback=button_callback_wecker, bouncetime=300)
+    GPIO.add_event_detect(35,GPIO.RISING,callback=buttonCallbackTaster1, bouncetime=300)
     GPIO.setup(33, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(33,GPIO.RISING,callback=button_callback_licht, bouncetime=300)
+    GPIO.add_event_detect(33,GPIO.RISING,callback=buttonCallbackTaster2, bouncetime=300)
     GPIO.setup(31, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(31,GPIO.RISING,callback=button_callback_modus, bouncetime=300)
+    GPIO.add_event_detect(31,GPIO.RISING,callback=buttonCallbackTaster3, bouncetime=300)
     #Initialisierung der GPIO-Pins fuer die 7-Segmentanzeige
     for segment in segments:
         GPIO.setup(segment, GPIO.OUT)

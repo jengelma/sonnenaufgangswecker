@@ -1,9 +1,14 @@
 # Notiz was noch gemacht werden muss Teamprojekt
 
-- Taster als Funktion implementieren
+- Taster als Funktion implementieren, wenn in Uhrzeitanzeige
 -- Taste 1: Wecker ein und Wecker aus
+-- Taste 2: Zur Weckzeitänderung wechseln
+-- Taste 3: Zur Weckzeitänderung wechseln
+
+- Taster als Funktion implementieren, wenn in Weckzeitänderung
+-- Taste 1: Rückkehr zur Uhrzeitanzeige
 -- Taste 2: Stunden hochzaehlen wenn in Weckzeiteinstellmodus
--- Taste 3: Minuten hochzaehlen wenn in Minuteneinstellmodus
+-- Taste 3: Minuten hochzaehlen wenn in Weckzeiteinstellmodus
 
 - Algorithmus zum Steuern der LED verfeinern
 -- Momentan pulsiert sie nur
@@ -24,4 +29,8 @@
   der Leuchtprozess dauern sollte, mit einem Defaultwert der einer
   realistischen Zeit entspricht
 
---> Die 30 Minuten vorher LED anmachen Funktion geht noch nicht
+- Wenn der Wecker in den 30 Minuten vor dem Klingeln ausgeschaltet wurde, muss
+  das registriert werden --> Wecker soll nicht mehr klingeln
+
+- Die 30 Minuten vorher LED anmachen Funktion geht noch nicht
+--> Funktioniert

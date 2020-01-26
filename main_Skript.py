@@ -391,17 +391,24 @@ def uhrzeitWeckzeitAufrufen():
 def weckzeitStundenHochzaehlen():
     global weckzeit_glob
     global weckzeit_led
-    weckzeit_glob.tm_hour += 1
-    if weckzeit_glob.tm_hour > 23:
-        weckzeit_glob.tm_hour = 0
+    
+    if weckzeit_glob.tm_hour + 1 > 23:
+        weckzeit_glob = time.strptime(str(0)+":"+
+        str(weckzeit_glob.tm_min), "%H:%M")
+    else:
+        weckzeit_glob = time.strptime(str(weckzeit_glob.tm_hour +1)+":"+
+        str(weckzeit_glob.tm_min), "%H:%M")
     weckzeitLEDBerechnen(weckzeit_glob)
     
 def weckzeitMinutenHochzaehlen():
     global weckzeit_glob
     global weckzeit_led
-    weckzeit_glob.tm_min += 1
-    if weckzeit_glob.tm_min > 59:
-        weckzeit_glob.tm_min = 0
+    if weckzeit_glob.tm_min + 1 > 59:
+        weckzeit_glob = time.strptime(str(weckzeit_glob.tm_hour)+":"+
+        str(0), "%H:%M")
+    else:
+        weckzeit_glob = time.strptime(str(weckzeit_glob.tm_hour)+":"+
+        str(weckzeit_glob.tm_min + 1), "%H:%M")
     weckzeitLEDBerechnen(weckzeit_glob)
 
 ### Initialisierungsfunktionen

@@ -9,14 +9,14 @@ import pygame
 import RPi.GPIO as GPIO
 from funktionensammlung import *
 
-### Ein paar generelle Initialisierungen und Deklarationen fuer den Programm-
-### ablauf
+### Ein paar generelle Initialisierungen und Deklarationen fuer den Programmablauf
 # Ein paar globale Variablen zum Vergleich ob der Wecker die richtige
 # Zeit schon erreicht hat
 wecker_running_flag = False
 # Die global zu verwendende Weckzeit sowie die Weckzeit fuer die LED
-weckzeit_glob = time.strptime("00:00", "%H:%M")
-weckzeit_led = time.strptime("00:00", "%H:%M")
+weckzeit_glob = time.time()
+weckzeit_glob = time.strptime("23:30", "%H:%M")
+weckzeit_led = time.strptime("23:00", "%H:%M")
 # Gibt an ob die LED leuchten soll oder nicht
 led_running_flag = False
 # Entscheidet ob der Wecker ertoenen soll oder nicht. Also gesamte Weckerfunktionalitaet
@@ -27,8 +27,7 @@ gueltigeEingabe = False
 wecker_ausschalten_flag = True
 # Flag zum signalisieren des aktuellen 7-Segment Modus
 uhrzeit_modus = True
-# Flag zum 
-
+# Flag zum anzeigen einer neuen Weckzeit für die LED
 neue_weckzeit_led_flag = False
 
 # Diese Variablen und Arrays werden benoetigt um die Uhrzeit auf der
@@ -82,7 +81,7 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
 
     uhrzeit_loc = time.struct_time
     while True:
-        uhrzeit_loc = queuename.get()
+        uhrzeit_loc = time.localtime()
         if wecker_modus == True:
 
             # Wecker loest aus wenn Weckzeit = Uhrzeit
@@ -149,14 +148,6 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
 
         time.sleep(1)
 
-# Gibt die aktuelle Uhrzeit immer in der Queue an
-def zeitGebeFunktion(threadname, queuename):
-    uhrzeit_glob = time.localtime()
-    while True:
-        queuename.put(uhrzeit_glob)
-        time.sleep(1)
-        uhrzeit_glob = time.localtime()
-
 # Ueberprueft ob der Wecker Geraeusche machen sollte
 def FlagCheckerSound():
     global wecker_running_flag
@@ -203,6 +194,10 @@ def LED_Funktion():
             #print(str(stunden_versatz)+":"+str(minuten_versatz))
             dc_before = 0
 
+            # Ausschalten der LED wenn die led_running_flag nicht gesetzt ist
+            if (led_running_flag == False):
+                p.ChangeDutyCycle(0)
+
             while led_running_flag:
                 dc_differenz = time.localtime()
                 if dc_differenz.tm_min < weckzeit_led.tm_min:
@@ -216,15 +211,11 @@ def LED_Funktion():
 
                 dc_before = dc
 
-                if (led_running_flag == False):
-                    p.ChangeDutyCycle(0)
-                    break
                 #pp.ChangeDutyCycle(dc)
                 #ppp.ChangeDutyCycle(dc)
-                time.sleep(0.01)
                 # p.ChangeDutyCycle(dc)
-                # #pp.ChangeDutyCycle(dc)
-                # #ppp.ChangeDutyCycle(dc)
+                # pp.ChangeDutyCycle(dc)
+                # ppp.ChangeDutyCycle(dc)
                 time.sleep(1)
 
         except KeyboardInterrupt:
@@ -268,7 +259,10 @@ def WeckzeitEingabe():
                     gueltigeMinuten = True
                     
             if (gueltigeStunden == True) and (gueltigeMinuten == True):
-                weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
+                if minuten < 10:
+                    weckzeit_glob = time.strptime(str(stunden)+":0"+str(minuten), "%H:%M")
+                else:
+                    weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
                 wecker_modus = True
                 neue_weckzeit_led_flag = True
         try:
@@ -294,27 +288,46 @@ def run7Segment():
                         # num[s[digit]][loop] gibt passend zur Zeit an ob das
                         # ausgewaehlt Segment beleuchtet werden muss
                         # mit 0 = false und 1 = true
+                        # Pin 23 oberer Doppelpunkt, Pin 7 unterer Doppelpunkt
+                        # Pin 16 ist der Punkt ueber der dritten Stelle
 
                         # if-Abfrage zur Steuerung der Sekundenanzeige
+                        # Wenn Wecker eingeschaltet, blinkt der Doppelpunkt
+                        # Bei ausgeschaltetem Wecker, bleiben die Punkte beleuchtet
                         if (int(time.ctime()[18:19])%2 == 0) and (digit == 4) and (
                             wecker_modus == True):
-                            GPIO.output(16,0)
+                            # Pin 22 fuer die drei Punkte
+                            GPIO.output(22,1)
                             GPIO.output(23,1)
                             GPIO.output(7,1)
-                            #GPIO.output(16, 0)
-                        elif (int(time.ctime()[18:19])%2 == 1) and (digit == 4):
-                            GPIO.output(16, 0)
-                            GPIO.output(23, 0)
+                            GPIO.output(16,0)
+                        elif (int(time.ctime()[18:19])%2 == 1) and (digit == 4) and (
+                            wecker_modus == True):
+                            GPIO.output(22,0)
+                            GPIO.output(23,0)
                             GPIO.output(7, 0)
-                        elif digit != 4:
-                            GPIO.output(segments[loop], num[s[digit]][loop])
+                            GPIO.output(16,0)
+                        elif wecker_modus == False:
+                            GPIO.output(22,1)
+                            if digit != 4:
+                                GPIO.output(segments[loop], num[s[digit]][loop])
+                            else:
+                                GPIO.output(16,0)
+                                GPIO.output(23,1)
+                                GPIO.output(7, 1)
 
-                    GPIO.output(digits[digit], 0)
-                    time.sleep(0.0001)
-                    GPIO.output(digits[digit], 1)
+                        elif digit != 4:
+                            GPIO.output(22,1)
+                            if digit != 4:
+                                GPIO.output(segments[loop], num[s[digit]][loop])
+                    gpioOutput7Segment(digits[digit])
+                    
 
             elif uhrzeit_modus == False:
-                n = str(weckzeit_glob.tm_hour) + str(weckzeit_glob.tm_min)
+                if weckzeit_glob.tm_min < 10:
+                    n = str(weckzeit_glob.tm_hour) + "0"+ str(weckzeit_glob.tm_min)
+                else:
+                    n = str(weckzeit_glob.tm_hour) + str(weckzeit_glob.tm_min)
                 s = str(n).rjust(4)
                 # Alle vier Stellen der Zeitangabe werden abgearbeitet
                 for digit in range(4):
@@ -332,6 +345,11 @@ def run7Segment():
 
     finally:
         GPIO.cleanup()
+
+def gpioOutput7Segment(pin_number):
+    GPIO.output(pin_number, 0)
+    time.sleep(0.0001)
+    GPIO.output(pin_number, 1)
 
 ### Button Callbacks
 # Taster 1, im Uhrzeitmodus --> Wecker ein/aus 
@@ -373,16 +391,15 @@ def uhrzeitWeckzeitAufrufen():
 def weckzeitStundenHochzaehlen():
     global weckzeit_glob
     global weckzeit_led
-    weckzeit_glob.tm_hour = weckzeit_glob.tm_hour + 1
+    weckzeit_glob.tm_hour += 1
     if weckzeit_glob.tm_hour > 23:
         weckzeit_glob.tm_hour = 0
     weckzeitLEDBerechnen(weckzeit_glob)
     
-
 def weckzeitMinutenHochzaehlen():
     global weckzeit_glob
     global weckzeit_led
-    weckzeit_glob.tm_min = weckzeit_glob.tm_min + 1
+    weckzeit_glob.tm_min += 1
     if weckzeit_glob.tm_min > 59:
         weckzeit_glob.tm_min = 0
     weckzeitLEDBerechnen(weckzeit_glob)
@@ -410,12 +427,13 @@ def initGPIOPins():
         GPIO.setup(digit, GPIO.OUT)
         GPIO.output(digit, 1)
 
+
+
 def main():
     pygame.mixer.init()
     queue = Queue()
     initGPIOPins()
     thread1 = Thread( target=WeckerFunkt, args=("Thread-1", queue, weckzeit_glob))
-    thread2 = Thread( target=zeitGebeFunktion, args=("Thread-2", queue))
     thread3 = Thread( target=FlagCheckerSound)
     thread4 = Thread( target=LED_Funktion)
     thread5 = Thread( target=WeckzeitEingabe)
@@ -423,7 +441,6 @@ def main():
 
 
     thread1.start()
-    thread2.start()
     thread3.start()
     thread4.start()
     thread5.start()
@@ -431,7 +448,6 @@ def main():
 
 
     thread1.join()
-    thread2.join()
     thread3.join()
     thread4.join()
     thread5.join()

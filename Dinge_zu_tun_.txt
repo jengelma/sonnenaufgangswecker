@@ -4,11 +4,13 @@
 -- Taste 1: Wecker ein und Wecker aus
 -- Taste 2: Zur Weckzeitänderung wechseln
 -- Taste 3: Zur Weckzeitänderung wechseln
+Geht!
 
 - Taster als Funktion implementieren, wenn in Weckzeitänderung
--- Taste 1: Rückkehr zur Uhrzeitanzeige
+-- Taste 1: Rückkehr zur Uhrzeitanzeige 
 -- Taste 2: Stunden hochzaehlen wenn in Weckzeiteinstellmodus
 -- Taste 3: Minuten hochzaehlen wenn in Weckzeiteinstellmodus
+Geht!
 
 - Algorithmus zum Steuern der LED verfeinern
 -- Momentan pulsiert sie nur
@@ -21,9 +23,11 @@
    können
 -- Ein nicht blinkender Doppelpunkt könnte Weckzeit signalisieren (Uhrzeit wird
    immer mit blinkendem Doppelpunkt angezeigt)
+Geht!
 
 - Die LED sollte weiterleuchten, auch wenn die Weckzeit überschritten ist,
   entweder bis auf den Knopf gedrueckt wird oder bis zu einem Timer
+Geht!
 
 - Man sollte mit dem initialisierenden Skript auch einstellen können wie lange
   der Leuchtprozess dauern sollte, mit einem Defaultwert der einer
@@ -31,6 +35,7 @@
 
 - Wenn der Wecker in den 30 Minuten vor dem Klingeln ausgeschaltet wurde, muss
   das registriert werden --> Wecker soll nicht mehr klingeln
+Geht!
 
-- Die 30 Minuten vorher LED anmachen Funktion geht noch nicht
+- Die 30 Minuten vorher LED anmachen Funktion geht
 --> Funktioniert

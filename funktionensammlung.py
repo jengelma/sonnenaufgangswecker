@@ -32,7 +32,7 @@ def neueZeitAbfrage():
     else:
         return ValueError
 
-def StundenAbfrage():
+def stundenAbfrage():
     try:
         stunden=int(input('Stunden (hh): '))
         if stunden > 23 or stunden < 0: #checker_int?
@@ -44,7 +44,7 @@ def StundenAbfrage():
     #gueltigeEingabe = True
     return stunden
 
-def MinutenAbfrage():
+def minutenAbfrage():
     try:
         minuten=int(input('Minuten (mm): '))
         if minuten > 59 or minuten < 0:
@@ -54,3 +54,8 @@ def MinutenAbfrage():
         print("Keine gueltige Eingabe")
         return ValueError
     return minuten
+
+def ledAnAus(p, pp, ppp):
+    p.changeDutyCycle(100)
+    pp.changeDutyCycle(100)
+    ppp.changeDutyCycle(100)

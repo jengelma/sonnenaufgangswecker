@@ -29,6 +29,8 @@ wecker_ausschalten_flag = True
 uhrzeit_modus = True
 # Flag zum anzeigen einer neuen Weckzeit für die LED
 neue_weckzeit_led_flag = False
+# Flag fuer die Nachttischlampe
+led_nachttischlampe = False
 
 # Diese Variablen und Arrays werden benoetigt um die Uhrzeit auf der
 # 7-Segmentanzeige korrekt anzuzeigen
@@ -98,7 +100,7 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
                 
             # Anpassung fuer die Vergleichbarkeit der Uhrzeiten
             if weckzeit_led.tm_hour == uhrzeit_loc.tm_hour:
-                if (weckzeit_led.tm_min <= uhrzeit_loc.tm_min):
+                if (weckzeit_led.tm_min - uhrzeit_loc.tm_min <= 30):
                     if led_once_on == False:
                         led_running_flag = True
                         led_once_on = True
@@ -111,7 +113,7 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
                         led_running_flag = False
             # Prueft ob wirklich 30 Minuten zwischen LED Wecker und Uhrzeit sind
             elif weckzeit_led.tm_hour == (uhrzeit_loc.tm_hour + 1):
-                if((weckzeit_led.tm_min -60 + uhrzeit_loc.tm_min) >= 0):
+                if((weckzeit_led.tm_min + 60 - uhrzeit_loc.tm_min) <= 30):
                     if led_once_on == False:
                         led_running_flag = True
                         led_once_on = True
@@ -145,6 +147,12 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
         else:
             led_running_flag = False
             wecker_running_flag = False
+            led_once_on = False
+            wecker_once_on = False
+            timer_gone_led = False
+            timer_gone = False
+            zaehler_timer_led = 0
+            zaehler_timer_gone = 0
 
         time.sleep(1)
 
@@ -171,6 +179,10 @@ def LED_Funktion():
     global weckzeit_glob
     global weckzeit_led
     global neue_weckzeit_led_flag
+    global led_nachttischlampe
+
+    # Gibt an, welcher der RGB-Werte angesteuert werden soll.
+    cycleNo = 0
 
     stunden_versatz, minuten_versatz =  weckzeitLEDBerechnen(weckzeit_glob)
 
@@ -178,45 +190,69 @@ def LED_Funktion():
     # Die Uhrzeit fuer den Wecker muss 30 Minuten vor dem eigentlichen Wecker anfangen.
     # Dadurch kann man die LED bis zum klingeln des Weckers anschalten
 
-    p = GPIO.PWM(37, 1000)
-    #pp = GPIO.PWM(35, 100)
-    #ppp = GPIO.PWM(33, 100)
+    # Einstellen der PWM-Funktion für die LED-Pins und Festlegen der Frequenz
+    p = GPIO.PWM(37, 120)
+    pp = GPIO.PWM(36, 120)
+    ppp = GPIO.PWM(40, 120)
 
+    # Starten der PWM mit Initialwert 0
     p.start(0)
-    #pp.start(0)
-    #ppp.start(0)
+    pp.start(0)
+    ppp.start(0)
+
+    # Zaehler fuer die LED-Staerken. Bis Maximal 80
+    zaehler_rot = 0
+    zaehler_gruen = 0
+    zaehler_blau = 0
+    
     while 1:
         try:
             if neue_weckzeit_led_flag == True:
                 stunden_versatz, minuten_versatz =  weckzeitLEDBerechnen(weckzeit_glob)
                 weckzeit_led = time.strptime(str(stunden_versatz)+" "+str(minuten_versatz), "%H %M")
                 neue_weckzeit_led_flag = False
-            #print(str(stunden_versatz)+":"+str(minuten_versatz))
-            dc_before = 0
 
             # Ausschalten der LED wenn die led_running_flag nicht gesetzt ist
-            if (led_running_flag == False):
+            if (led_running_flag == False) and led_nachttischlampe == False:
                 p.ChangeDutyCycle(0)
+                pp.ChangeDutyCycle(0)  
+                ppp.ChangeDutyCycle(0)
+
+                zaehler_rot = 0
+                zaehler_gruen = 0
+                zaehler_blau = 0
+
+            if led_nachttischlampe == True and led_running_flag == False:
+                p.ChangeDutyCycle(80)
+                pp.ChangeDutyCycle(80)
+                ppp.ChangeDutyCycle(80)
+            elif led_nachttischlampe == False and led_running_flag == False:
+                p.ChangeDutyCycle(0)
+                pp.ChangeDutyCycle(0)
+                ppp.ChangeDutyCycle(0)
 
             while led_running_flag:
                 dc_differenz = time.localtime()
-                if dc_differenz.tm_min < weckzeit_led.tm_min:
-                    dc = dc_differenz.tm_min + 60 - weckzeit_led.tm_min
-                else :
-                    dc = dc_differenz.tm_min - weckzeit_led.tm_min
 
-                # Wenn sich der Wert für die PWM nicht veraendert hat, nichts aendern
-                if dc != dc_before:
-                    p.ChangeDutyCycle(dc)
+                # Alle 10 Sekunden verändert sich dann Wert für ChangeDutyCycle, 180 Werte
+                if (dc_differenz.tm_sec % 10 == 0) and zaehler_rot <= 80:
+                    zaehler_rot += 1
+                    p.ChangeDutyCycle(zaehler_rot)
+                    if zaehler_rot % 4 == 0:
+                        zaehler_gruen += 1
+                        pp.ChangeDutyCycle(zaehler_gruen)
+                    if zaehler_rot % 8 == 0:
+                        zaehler_blau += 1
+                        ppp.ChangeDutyCycle(zaehler_blau)
+                elif (dc_differenz.tm_sec % 10 == 0) and zaehler_gruen <= 80:
+                    pp.ChangeDutyCycle(zaehler_gruen)
+                    if zaehler_gruen % 2 == 0:
+                        zaehler_blau += 1
+                        ppp.ChangeDutyCycle(zaehler_blau)
+                elif (dc_differenz.tm_sec % 10 == 0) and zaehler_blau <= 80:
+                    ppp.ChangeDutyCycle(zaehler_blau)
 
-                dc_before = dc
-
-                #pp.ChangeDutyCycle(dc)
-                #ppp.ChangeDutyCycle(dc)
-                # p.ChangeDutyCycle(dc)
-                # pp.ChangeDutyCycle(dc)
-                # ppp.ChangeDutyCycle(dc)
-                time.sleep(1)
+                time.sleep(0.5)
 
         except KeyboardInterrupt:
             p.stop()
@@ -245,13 +281,13 @@ def WeckzeitEingabe():
         time.sleep(1)
         if weckzeitAbfragen == True:
             print("Geben Sie die gewuenschte Weckzeit im vorgegebenen Format ein.")
-            stunden = StundenAbfrage()
+            stunden = stundenAbfrage()
             if stunden == ValueError:
                 gueltigeStunden = False
                 wecker_modus = False
             else:
                 gueltigeStunden = True
-                minuten = MinutenAbfrage()
+                minuten = minutenAbfrage()
                 if minuten == ValueError:
                     gueltigeMinuten = False
                     wecker_modus = False
@@ -374,8 +410,9 @@ def buttonCallbackTaster2(channel):
 #           im Weckzeitmodus --> Minuten hochzaehlen
 def buttonCallbackTaster3(channel):
     global uhrzeit_modus
+    global led_nachttischlampe
     if uhrzeit_modus == True:
-        uhrzeitWeckzeitAufrufen()
+        led_nachttischlampe = not led_nachttischlampe
     elif uhrzeit_modus == False:
         weckzeitMinutenHochzaehlen()
 
@@ -416,7 +453,9 @@ def weckzeitMinutenHochzaehlen():
 def initGPIOPins():
     GPIO.setmode(GPIO.BOARD)
     # Initialisierung des GPIO-Pins fuer die LED
-    GPIO.setup(37, GPIO.OUT)
+    GPIO.setup(37, GPIO.OUT) #Rot
+    GPIO.setup(36, GPIO.OUT) #Blau
+    GPIO.setup(40, GPIO.OUT) #Gruen
     # Initialiasierung der GPIO-Pins fuer die Taster
     # Bouncetime braucht man um mehrmaliges ausloesen zu verhindern, evtl. risingedge?
     GPIO.setup(35, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)

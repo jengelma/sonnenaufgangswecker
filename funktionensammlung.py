@@ -14,9 +14,6 @@ def weckzeitLEDBerechnen(weckzeit_glob):
         minuten_versatz += 60
         if stunden_versatz == -1:
             stunden_versatz = 23
-    
-    #print(stunden_versatz)
-    #print(minuten_versatz)
 
     return stunden_versatz, minuten_versatz
 

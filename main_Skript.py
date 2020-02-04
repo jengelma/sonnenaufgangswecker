@@ -174,8 +174,10 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
 def FlagCheckerSound():
     global wecker_running_flag
     # Es koennen auch mehrere Titel hier eingefuegt werden, --> Auswahl!
-    pygame.mixer.music.load("cartoon-birds-2_daniel-simion.wav")
-    #music = pyglet.resource.media('cartoon-birds-2_daniel-simion.wav', streaming=False)
+    # Hier muss ein Delay hin, weil sonst beim Booten die .wav-Datei nicht
+    # gelesen werden konnte. 
+    time.sleep(5)
+    pygame.mixer.music.load("birds006.wav")
     while 1:
         if not wecker_running_flag:
             time.sleep(1)

@@ -1,0 +1,12 @@
+[Unit]
+# Human readable name of the unit
+Description=Autostart Service des Weckers
+
+[Service]
+# Command to execute when the service is started
+ExecStart=/usr/bin/python3 Desktop/Teamprojekt/Python_Quelltext/Programmquellcode/GUI/github/sonnenaufgangswecker/main_Skript.py
+Environment=PYTHONBUFFERED=1
+
+[Install]
+# To start the service on boot, we have to set a target
+WantedBy=default.target

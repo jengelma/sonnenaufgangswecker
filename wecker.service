@@ -1,0 +1,25 @@
+[Unit]
+
+Description=Weckerservice zum Autostart
+
+After=network-online.target
+
+[Service] 
+ExecStart=/usr/bin/python3 -u /Desktop/Teamprojekt/Python_Quelltext/Programmquellcode/GUI/github/sonnenaufgangswecker/main_Skript.py
+
+WorkingDirectory=/Desktop/Teamprojekt/Python_Quelltext/Programmquellcode/GUI/github/sonnenaufgangswecker
+
+Environment=PYTHONBUFFERED=1
+
+StandardOutput=inherit
+
+StandardError=inherit
+
+Restart=on-failure
+
+User=pi
+
+[Install]
+
+WantedBy=multi-user.target
+

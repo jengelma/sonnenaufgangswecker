@@ -2,9 +2,7 @@
 
 # main Skript um Datenaustausch, GUI und Wecker gleichzeitig laufen zu lassen
 from threading import Thread
-from queue import Queue
 import time
-import pyglet
 import pygame
 import RPi.GPIO as GPIO
 from funktionensammlung import *

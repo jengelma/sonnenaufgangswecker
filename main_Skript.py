@@ -60,7 +60,7 @@ num = {' ':(0,0,0,0,0,0,0),
 
 ### Die Thread-Funktionen
 # Generelle Weckerfunktionalitaet --> Ueberprueft Uhrzeit und Weckzeit
-def WeckerFunkt(threadname, queuename, weckzeit_loc):
+def weckerFunkt(threadname, queuename, weckzeit_loc):
     # Dauer der "Timer"
     FUENF_MINUTEN = 360
     DREISSIG_PLUS_FUENF_MINUTEN = 1800 + FUENF_MINUTEN
@@ -171,7 +171,7 @@ def WeckerFunkt(threadname, queuename, weckzeit_loc):
         time.sleep(1)
 
 # Ueberprueft ob der Wecker Geraeusche machen sollte
-def FlagCheckerSound():
+def flagCheckerSound():
     global wecker_running_flag
     # Es koennen auch mehrere Titel hier eingefuegt werden, --> Auswahl!
     # Hier muss ein Delay hin, weil sonst beim Booten die .wav-Datei nicht
@@ -189,7 +189,7 @@ def FlagCheckerSound():
 
 
 # Funktion die die LED ansteuert wenn die Weckzeit = Uhrzeit
-def LED_Funktion():
+def ledFunktion():
     global wecker_running_flag
     global led_running_flag
     global weckzeit_glob
@@ -290,7 +290,7 @@ def ledLichterSteuerung(zaehler_rot, zaehler_gruen, zaehler_blau, p, pp, ppp):
     
     return zaehler_rot, zaehler_blau, zaehler_gruen
 
-def WeckzeitEingabe():
+def weckzeitEingabe():
     global weckzeit_glob
     global wecker_modus
     global neue_weckzeit_led_flag
@@ -511,10 +511,10 @@ def main():
     pygame.mixer.init()
     queue = Queue()
     initGPIOPins()
-    thread1 = Thread( target=WeckerFunkt, args=("Thread-1", queue, weckzeit_glob))
-    thread3 = Thread( target=FlagCheckerSound)
-    thread4 = Thread( target=LED_Funktion)
-    thread5 = Thread( target=WeckzeitEingabe)
+    thread1 = Thread( target=weckerFunkt, args=("Thread-1", queue, weckzeit_glob))
+    thread3 = Thread( target=flagCheckerSound)
+    thread4 = Thread( target=ledFunktion)
+    thread5 = Thread( target=weckzeitEingabe)
     thread6 = Thread( target=run7Segment)
 
 

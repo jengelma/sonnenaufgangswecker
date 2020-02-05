@@ -2,7 +2,9 @@
 
 # main Skript um Datenaustausch, GUI und Wecker gleichzeitig laufen zu lassen
 from threading import Thread
+from queue import Queue
 import time
+import pyglet
 import pygame
 import RPi.GPIO as GPIO
 from funktionensammlung import *
@@ -58,7 +60,7 @@ num = {' ':(0,0,0,0,0,0,0),
 
 ### Die Thread-Funktionen
 # Generelle Weckerfunktionalitaet --> Ueberprueft Uhrzeit und Weckzeit
-def weckerFunkt(threadname,  weckzeit_loc):
+def weckerFunkt(threadname, queuename, weckzeit_loc):
     # Dauer der "Timer"
     FUENF_MINUTEN = 360
     DREISSIG_PLUS_FUENF_MINUTEN = 1800 + FUENF_MINUTEN
@@ -169,7 +171,7 @@ def weckerFunkt(threadname,  weckzeit_loc):
         time.sleep(1)
 
 # Ueberprueft ob der Wecker Geraeusche machen sollte
-def flagCheckerSound():
+def FlagCheckerSound():
     global wecker_running_flag
     # Es koennen auch mehrere Titel hier eingefuegt werden, --> Auswahl!
     # Hier muss ein Delay hin, weil sonst beim Booten die .wav-Datei nicht
@@ -187,7 +189,7 @@ def flagCheckerSound():
 
 
 # Funktion die die LED ansteuert wenn die Weckzeit = Uhrzeit
-def ledFunktion():
+def LED_Funktion():
     global wecker_running_flag
     global led_running_flag
     global weckzeit_glob
@@ -288,7 +290,7 @@ def ledLichterSteuerung(zaehler_rot, zaehler_gruen, zaehler_blau, p, pp, ppp):
     
     return zaehler_rot, zaehler_blau, zaehler_gruen
 
-def weckzeitEingabe():
+def WeckzeitEingabe():
     global weckzeit_glob
     global wecker_modus
     global neue_weckzeit_led_flag
@@ -418,7 +420,9 @@ def gpioOutput7Segment(pin_number):
 def buttonCallbackTaster1(channel):
     global uhrzeit_modus
     if uhrzeit_modus == True:
-        weckerFunktionInvertieren()
+        
+
+weckerFunktionInvertieren()
     elif uhrzeit_modus == False:
         uhrzeitWeckzeitAufrufen()
 
@@ -471,12 +475,12 @@ def weckzeitMinutenHochzaehlen():
 
     neue_weckzeit_led_flag = True
 
-    if weckzeit_glob.tm_min + 5 > 59:
+    if weckzeit_glob.tm_min + 1 > 59:
         weckzeit_glob = time.strptime(str(weckzeit_glob.tm_hour)+":"+
         str(0), "%H:%M")
     else:
         weckzeit_glob = time.strptime(str(weckzeit_glob.tm_hour)+":"+
-        str(weckzeit_glob.tm_min + 5), "%H:%M")
+        str(weckzeit_glob.tm_min + 1), "%H:%M")
 
 ### Initialisierungsfunktionen
 #Initialisation of GPIO Pins Raspi
@@ -507,11 +511,12 @@ def initGPIOPins():
 
 def main():
     pygame.mixer.init()
+    queue = Queue()
     initGPIOPins()
-    thread1 = Thread( target=weckerFunkt, args=("Thread-1", weckzeit_glob))
-    thread3 = Thread( target=flagCheckerSound)
-    thread4 = Thread( target=ledFunktion)
-    thread5 = Thread( target=weckzeitEingabe)
+    thread1 = Thread( target=WeckerFunkt, args=("Thread-1", queue, weckzeit_glob))
+    thread3 = Thread( target=FlagCheckerSound)
+    thread4 = Thread( target=LED_Funktion)
+    thread5 = Thread( target=WeckzeitEingabe)
     thread6 = Thread( target=run7Segment)
 
 

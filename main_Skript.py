@@ -57,7 +57,7 @@ num = {' ':(0,0,0,0,0,0,0),
 
 ### Die Thread-Funktionen
 # Generelle Weckerfunktionalitaet --> Ueberprueft Uhrzeit und Weckzeit
-def weckerFunkt(threadname,  weckzeit_loc):
+def weckerFunkt():
     # Dauer der "Timer"
     FUENF_MINUTEN = 360
     
@@ -83,37 +83,31 @@ def weckerFunkt(threadname,  weckzeit_loc):
             wecker_once_on = False
             print("uhrzeit_modus == False")
 
+        elif wecker_modus == False:
+            wecker_running_flag = False
+            led_running_flag = False
+            led_once_on = False
+            wecker_once_on = False
+            zaehler_timer_gone = 0
+            print("wecker_modus == False")
+
         elif wecker_modus == True and uhrzeit_modus == True:
             # Weckerton loest aus wenn Weckzeit = Uhrzeit
-            if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (
-                weckzeit_glob.tm_min == uhrzeit_loc.tm_min):
-                print("Wecker")
+            if (weckzeit_glob.tm_hour == uhrzeit_loc.tm_hour) and (weckzeit_glob.tm_min == uhrzeit_loc.tm_min):
+                print("wecker_running_flag == True")
                 if wecker_once_on == False:
                     wecker_running_flag = True
                     wecker_once_on = True
 
             # Anpassung fuer die Vergleichbarkeit der Uhrzeiten
-            elif (weckzeit_led.tm_hour == uhrzeit_loc.tm_hour) and (uhrzeit_loc.tm_min > weckzeit_led.tm_min) and (uhrzeit_loc.tm_min - weckzeit_led.tm_min <= 30):
+            elif (weckzeit_led.tm_hour == uhrzeit_loc.tm_hour) and (uhrzeit_loc.tm_min == weckzeit_led.tm_min):
                 print("w.h == u.h")
                 if led_once_on == False:
                     led_running_flag = True
                     led_once_on = True
 
-            # Spezialfall von 0:00 und 24:00
-            elif (weckzeit_led.tm_hour + 1 == 24 and weckzeit_led.tm_min >= 30) and (uhrzeit_loc.tm_hour == 0) and (weckzeit_led.tm_min - uhrzeit_loc.tm_min >= 30):
-                print("0:00 Spezial")
-                if led_once_on == False:
-                    led_running_flag = True
-                    led_once_on = True
-
-            # Prueft ob wirklich 30 Minuten zwischen LED Wecker und Uhrzeit sind
-            elif (weckzeit_led.tm_hour + 1 == uhrzeit_loc.tm_hour ) and (weckzeit_led.tm_min - uhrzeit_loc.tm_min) >= 30:
-                print("W.h +1 == u.h & w.m +60 -u.m <= 30")
-                if led_once_on == False:
-                    led_running_flag = True
-                    led_once_on = True
-
-            # Wenn der Wecker 5 Minuten gelaufen ist, stoppt der Wecker
+            # Wenn der Wecker 5 Minuten gelaufen ist, stoppt der Wecker.
+            # Bzw. wenn die Lampe 35 Minuten lief
             if wecker_running_flag == True:
                 zaehler_timer_gone = zaehler_timer_gone + 1
                 if zaehler_timer_gone == FUENF_MINUTEN:
@@ -122,14 +116,8 @@ def weckerFunkt(threadname,  weckzeit_loc):
                     led_once_on = False
                     wecker_once_on = False
                     zaehler_timer_gone = 0
-            else :
+            else:
                 zaehler_timer_gone = 0
-        else:
-            wecker_running_flag = False
-            led_running_flag = False
-            led_once_on = False
-            wecker_once_on = False
-            zaehler_timer_gone = 0
 
         time.sleep(1)
 
@@ -267,13 +255,11 @@ def weckzeitEingabe():
             stunden = stundenAbfrage()
             if stunden == ValueError:
                 gueltigeStunden = False
-                wecker_modus = False
             else:
                 gueltigeStunden = True
                 minuten = minutenAbfrage()
                 if minuten == ValueError:
                     gueltigeMinuten = False
-                    wecker_modus = False
                 else:
                     gueltigeMinuten = True
                     
@@ -282,7 +268,6 @@ def weckzeitEingabe():
                     weckzeit_glob = time.strptime(str(stunden)+":0"+str(minuten), "%H:%M")
                 else:
                     weckzeit_glob = time.strptime(str(stunden)+":"+str(minuten), "%H:%M")
-                wecker_modus = True
                 neue_weckzeit_led_flag = True
         try:
             weckzeitAbfragen = neueZeitAbfrage()
@@ -466,7 +451,7 @@ def initGPIOPins():
 def main():
     pygame.mixer.init()
     initGPIOPins()
-    thread1 = Thread( target=weckerFunkt, args=("Thread-1", weckzeit_glob))
+    thread1 = Thread( target=weckerFunkt)
     thread3 = Thread( target=flagCheckerSound)
     thread4 = Thread( target=ledFunktion)
     #thread5 = Thread( target=weckzeitEingabe)

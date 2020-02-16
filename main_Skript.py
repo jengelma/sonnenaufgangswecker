@@ -100,7 +100,7 @@ def weckerFunkt():
                     wecker_once_on = True
 
             # Anpassung fuer die Vergleichbarkeit der Uhrzeiten
-            elif (weckzeit_led.tm_hour == uhrzeit_loc.tm_hour) and (uhrzeit_loc.tm_min == weckzeit_led.tm_min):
+            elif (weckzeit_led.tm_hour == uhrzeit_loc.tm_hour) and (weckzeit_led.tm_min == uhrzeit_loc.tm_min):
                 print("w.h == u.h")
                 if led_once_on == False:
                     led_running_flag = True
@@ -127,16 +127,21 @@ def flagCheckerSound():
     # Es koennen auch mehrere Titel hier eingefuegt werden, --> Auswahl!
     # Hier muss ein Delay hin, weil sonst beim Booten die .wav-Datei nicht
     # gelesen werden konnte. 
-    time.sleep(10)
+    time.sleep(1)
     pygame.mixer.music.load("birds006.wav")
     while 1:
-        if not wecker_running_flag:
-            time.sleep(10)
-        while wecker_running_flag:
-            # Wenn die Musik schon spielt, hat die play()-Funktion keine Auswirkungen
-            if pygame.mixer.music.get_busy() != True:
-                pygame.mixer.music.play()
-            time.sleep(0.5)
+        if (wecker_running_flag):
+            while wecker_running_flag:
+                # Wenn die Musik schon spielt, hat die play()-Funktion keine Auswirkungen
+                if pygame.mixer.music.get_busy() != True:
+                    pygame.mixer.music.play()
+                time.sleep(0.5)
+        else:
+            if pygame.mixer.music.get_busy() == True:
+                    pygame.mixer.music.stop()
+
+        time.sleep(1)
+            
 
 
 # Funktion die die LED ansteuert wenn die Weckzeit = Uhrzeit
@@ -195,7 +200,7 @@ def ledFunktion():
                 #uhrzeit_aktuell = time.localtime()
                 zaehler_rot, zaehler_blau, zaehler_gruen = ledLichterSteuerung(zaehler_rot, zaehler_gruen, zaehler_blau, p, pp, ppp)
 
-                time.sleep(0.5)
+                time.sleep(1) #Hier vielleicht 1 Sekunde
             
             zaehler_rot = 0
             zaehler_gruen = 0
@@ -217,20 +222,30 @@ def ledLichterSteuerung(zaehler_rot, zaehler_gruen, zaehler_blau, p, pp, ppp):
     if (dc_differenz.tm_sec % 10 == 0) and zaehler_rot <= 80:
         zaehler_rot += 1
         p.ChangeDutyCycle(zaehler_rot)
+        print("zaehler_rot %d", zaehler_rot)
         if zaehler_rot % 4 == 0:
             zaehler_gruen += 1
             pp.ChangeDutyCycle(zaehler_gruen)
+            print("zaehler_gruen %d", zaehler_gruen)
 
-        if zaehler_rot % 10 == 0:
+        if zaehler_rot % 8 == 0:
             zaehler_blau += 1
             ppp.ChangeDutyCycle(zaehler_blau)
-    elif (dc_differenz.tm_sec % 10 == 0) and zaehler_gruen <= 80:
+            print("zaehler_blau %d", zaehler_blau)
+
+    elif (dc_differenz.tm_sec % 10 == 0) and zaehler_gruen <= 80 and zaehler_rot >= 80:
+        zaehler_gruen += 1
         pp.ChangeDutyCycle(zaehler_gruen)
+        print("zaehler_gruen %d", zaehler_gruen)
         if zaehler_gruen % 2 == 0:
             zaehler_blau += 1
             ppp.ChangeDutyCycle(zaehler_blau)
-    elif (dc_differenz.tm_sec % 10 == 0) and zaehler_blau <= 80:
+            print("zaehler_blau %d", zaehler_blau)
+
+    elif (dc_differenz.tm_sec % 10 == 0) and zaehler_blau <= 80 and zaehler_rot >= 80 and zaehler_gruen >= 80:
+        zaehler_blau += 1
         ppp.ChangeDutyCycle(zaehler_blau)
+        print("zaehler_blau %d", zaehler_blau)
     
     return zaehler_rot, zaehler_blau, zaehler_gruen
 
